@@ -64,6 +64,7 @@ aws ec2 describe-network-interfaces `
     --query 'NetworkInterfaces[0].Association.PublicIp' `
     --output text
 ```
+The above commands are written into a [Powershell script](/terraform/get-ecs-public-ip.ps1).
 
 Send some requests:
 ```
