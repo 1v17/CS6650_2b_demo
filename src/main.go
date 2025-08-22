@@ -1,67 +1,100 @@
 package main
 
 import (
-    "net/http"
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
-// album represents data about a record album.
-type album struct {
-    ID     string  `json:"id"`
-    Title  string  `json:"title"`
-    Artist string  `json:"artist"`
-    Price  float64 `json:"price"`
+// Product represents the product schema from the OpenAPI spec.
+type Product struct {
+	ProductID    int    `json:"product_id"`
+	SKU          string `json:"sku"`
+	Manufacturer string `json:"manufacturer"`
+	CategoryID   int    `json:"category_id"`
+	Weight       int    `json:"weight"`
+	SomeOtherID  int    `json:"some_other_id"`
 }
 
-// albums slice to seed record album data.
-var albums = []album{
-    {ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
-    {ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
-    {ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
-}
+// In-memory product store (thread-safe)
+var (
+	productStore = make(map[int]Product)
+	productMutex sync.RWMutex
+)
 
 func main() {
-    router := gin.Default()
-    router.GET("/albums", getAlbums)
-    router.GET("/albums/:id", getAlbumByID)
-    router.POST("/albums", postAlbums)
+	router := gin.Default()
 
-    router.Run(":8080")
+	// Product endpoints
+	router.GET("/products/:productId", getProductByID)
+	router.POST("/products", postProduct)
+
+	// Health check endpoint
+	router.GET("/health", healthHandler)
+
+	router.Run(":8080")
 }
 
-// getAlbums responds with the list of all albums as JSON.
-func getAlbums(c *gin.Context) {
-    c.IndentedJSON(http.StatusOK, albums)
+// healthHandler handles GET /health
+func healthHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"status":    "healthy",
+		"timestamp": time.Now().Unix(),
+		"service":   "product-service",
+	})
 }
 
-// postAlbums adds an album from JSON received in the request body.
-func postAlbums(c *gin.Context) {
-    var newAlbum album
-
-    // Call BindJSON to bind the received JSON to
-    // newAlbum.
-    if err := c.BindJSON(&newAlbum); err != nil {
-        return
-    }
-
-    // Add the new album to the slice.
-    albums = append(albums, newAlbum)
-    c.IndentedJSON(http.StatusCreated, newAlbum)
+// getProductByID handles GET /products/:productId
+func getProductByID(c *gin.Context) {
+	idStr := c.Param("productId")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "INVALID_INPUT",
+			"message": "The provided input data is invalid",
+			"details": "Product ID must be a positive integer",
+		})
+		return
+	}
+	productMutex.RLock()
+	product, ok := productStore[id]
+	productMutex.RUnlock()
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "INVALID_INPUT",
+			"message": "The provided input data is invalid",
+			"details": "Product ID must be a positive integer",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, product)
 }
 
-// getAlbumByID locates the album whose ID value matches the id
-// parameter sent by the client, then returns that album as a response.
-func getAlbumByID(c *gin.Context) {
-    id := c.Param("id")
-
-    // Loop through the list of albums, looking for
-    // an album whose ID value matches the parameter.
-    for _, a := range albums {
-        if a.ID == id {
-            c.IndentedJSON(http.StatusOK, a)
-            return
-        }
-    }
-    c.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
+// postProduct handles POST /products
+func postProduct(c *gin.Context) {
+	var prod Product
+	if err := c.ShouldBindJSON(&prod); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "INVALID_INPUT",
+			"message": "The provided input data is invalid",
+			"details": "Product ID must be a positive integer",
+		})
+		return
+	}
+	if prod.ProductID < 1 || prod.SKU == "" || prod.Manufacturer == "" ||
+		prod.CategoryID < 1 || prod.Weight < 0 || prod.SomeOtherID < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "INVALID_INPUT",
+			"message": "The provided input data is invalid",
+			"details": "Product ID must be a positive integer",
+		})
+		return
+	}
+	productMutex.Lock()
+	productStore[prod.ProductID] = prod
+	productMutex.Unlock()
+	c.JSON(http.StatusCreated, prod)
 }
