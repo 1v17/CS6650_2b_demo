@@ -20,10 +20,7 @@ type Product struct {
 }
 
 // In-memory product store (thread-safe)
-var (
-	productStore = make(map[int]Product)
-	productMutex sync.RWMutex
-)
+var productStore sync.Map
 
 func main() {
 	router := gin.Default()
@@ -59,9 +56,7 @@ func getProductByID(c *gin.Context) {
 		})
 		return
 	}
-	productMutex.RLock()
-	product, ok := productStore[id]
-	productMutex.RUnlock()
+	value, ok := productStore.Load(id)
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error":   "INVALID_INPUT",
@@ -70,6 +65,7 @@ func getProductByID(c *gin.Context) {
 		})
 		return
 	}
+	product := value.(Product)
 	c.JSON(http.StatusOK, product)
 }
 
@@ -93,8 +89,6 @@ func postProduct(c *gin.Context) {
 		})
 		return
 	}
-	productMutex.Lock()
-	productStore[prod.ProductID] = prod
-	productMutex.Unlock()
+	productStore.Store(prod.ProductID, prod)
 	c.JSON(http.StatusCreated, prod)
 }
