@@ -1,8 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build the application from source
-FROM golang:1.24-alpine  AS build
-RUN apk add --no-cache git
+FROM golang:1.23-alpine AS build
 
 WORKDIR /src
 COPY go.mod go.sum ./
