@@ -4,6 +4,7 @@ module "network" {
   source         = "./modules/network"
   service_name   = var.service_name
   container_port = var.container_port
+  cidr_blocks    = var.cidr_blocks
 }
 
 module "ecr" {
@@ -34,6 +35,8 @@ module "ecs" {
   log_group_name     = module.logging.log_group_name
   ecs_count          = var.ecs_count
   region             = var.aws_region
+  cpu                = var.cpu
+  memory             = var.memory
 }
 
 

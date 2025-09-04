@@ -30,3 +30,21 @@ variable "log_retention_days" {
   type    = number
   default = 7
 }
+
+# ECS Task CPU
+variable "cpu" {
+  type        = string
+  description = "CPU units for the ECS task"
+}
+
+# ECS Task Memory
+variable "memory" {
+  type        = string
+  description = "Memory for the ECS task"
+}
+
+# CIDR blocks for security group access
+variable "cidr_blocks" {
+  type        = list(string)
+  description = "CIDR blocks allowed to access the service"
+}
