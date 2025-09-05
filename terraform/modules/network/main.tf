@@ -33,3 +33,15 @@ resource "aws_security_group" "this" {
     description = "Allow all outbound"
   }
 }
+
+# Additional security group rule to allow ALB traffic
+resource "aws_security_group_rule" "alb_ingress" {
+  type                     = "ingress"
+  from_port               = 8080
+  to_port                 = 8080
+  protocol                = "tcp"
+  cidr_blocks             = ["0.0.0.0/0"]
+  security_group_id       = var.alb_security_group_id
+  
+  depends_on = [var.alb_security_group_id]
+}

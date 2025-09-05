@@ -47,4 +47,15 @@ resource "aws_ecs_service" "this" {
     security_groups = var.security_group_ids
     assign_public_ip = true
   }
+
+  dynamic "load_balancer" {
+    for_each = var.target_group_arn != null ? [1] : []
+    content {
+      target_group_arn = var.target_group_arn
+      container_name   = "${var.service_name}-container"
+      container_port   = var.container_port
+    }
+  }
+
+  depends_on = [var.target_group_arn]
 }

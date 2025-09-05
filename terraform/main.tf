@@ -1,10 +1,11 @@
 # Wire together four focused modules: network, ecr, logging, ecs.
 
 module "network" {
-  source         = "./modules/network"
-  service_name   = var.service_name
-  container_port = var.container_port
-  cidr_blocks    = var.cidr_blocks
+  source                = "./modules/network"
+  service_name          = var.service_name
+  container_port        = var.container_port
+  cidr_blocks           = var.cidr_blocks
+  alb_security_group_id = module.alb.alb_security_group_id
 }
 
 module "ecr" {
@@ -16,6 +17,14 @@ module "logging" {
   source            = "./modules/logging"
   service_name      = var.service_name
   retention_in_days = var.log_retention_days
+}
+
+module "alb" {
+  source         = "./modules/alb"
+  vpc_id         = module.network.vpc_id
+  public_subnets = module.network.public_subnet_ids
+  service_name   = var.service_name
+  cidr_blocks    = var.cidr_blocks
 }
 
 # Reuse an existing IAM role for ECS tasks
@@ -37,6 +46,7 @@ module "ecs" {
   region             = var.aws_region
   cpu                = var.cpu
   memory             = var.memory
+  target_group_arn   = module.alb.target_group_arn
 }
 
 
