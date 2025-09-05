@@ -48,3 +48,34 @@ variable "cidr_blocks" {
   type        = list(string)
   description = "CIDR blocks allowed to access the service"
 }
+
+# Auto Scaling Configuration
+variable "min_capacity" {
+  type        = number
+  default     = 2
+  description = "Minimum number of ECS tasks"
+}
+
+variable "max_capacity" {
+  type        = number
+  default     = 8
+  description = "Maximum number of ECS tasks"
+}
+
+variable "response_time_threshold" {
+  type        = number
+  default     = 2
+  description = "Response time threshold in seconds for monitoring alarm"
+}
+
+variable "error_rate_threshold" {
+  type        = number
+  default     = 10
+  description = "Error rate threshold (count) for monitoring alarm"
+}
+
+variable "enable_alb_monitoring" {
+  type        = bool
+  default     = true
+  description = "Enable ALB monitoring alarms (response time and error rate)"
+}

@@ -33,20 +33,20 @@ data "aws_iam_role" "lab_role" {
 }
 
 module "ecs" {
-  source             = "./modules/ecs"
-  service_name       = var.service_name
-  image              = "${module.ecr.repository_url}:latest"
-  container_port     = var.container_port
-  subnet_ids         = module.network.subnet_ids
-  security_group_ids = [module.network.security_group_id]
-  execution_role_arn = data.aws_iam_role.lab_role.arn
-  task_role_arn      = data.aws_iam_role.lab_role.arn
-  log_group_name     = module.logging.log_group_name
-  ecs_count          = var.ecs_count
-  region             = var.aws_region
-  cpu                = var.cpu
-  memory             = var.memory
-  target_group_arn   = module.alb.target_group_arn
+  source                    = "./modules/ecs"
+  service_name              = var.service_name
+  image                     = "${module.ecr.repository_url}:latest"
+  container_port            = var.container_port
+  subnet_ids                = module.network.subnet_ids
+  security_group_ids        = [module.network.security_group_id]
+  execution_role_arn        = data.aws_iam_role.lab_role.arn
+  task_role_arn             = data.aws_iam_role.lab_role.arn
+  log_group_name            = module.logging.log_group_name
+  ecs_count                 = var.ecs_count
+  region                    = var.aws_region
+  cpu                       = var.cpu
+  memory                    = var.memory
+  target_group_arn          = module.alb.target_group_arn
 }
 
 

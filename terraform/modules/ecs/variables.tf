@@ -66,3 +66,39 @@ variable "target_group_arn" {
   description = "ALB target group ARN"
   default     = null
 }
+
+variable "min_capacity" {
+  type        = number
+  default     = 2
+  description = "Minimum number of ECS tasks"
+}
+
+variable "max_capacity" {
+  type        = number
+  default     = 8
+  description = "Maximum number of ECS tasks"
+}
+
+variable "response_time_threshold" {
+  type        = number
+  default     = 2
+  description = "Response time threshold in seconds for monitoring alarm"
+}
+
+variable "error_rate_threshold" {
+  type        = number
+  default     = 10
+  description = "Error rate threshold (count) for monitoring alarm"
+}
+
+variable "load_balancer_arn_suffix" {
+  type        = string
+  description = "Load balancer ARN suffix for CloudWatch alarms"
+  default     = null
+}
+
+variable "enable_alb_monitoring" {
+  type        = bool
+  default     = true
+  description = "Enable ALB monitoring alarms (response time and error rate)"
+}
