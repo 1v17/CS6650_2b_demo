@@ -1,10 +1,11 @@
 # Wire together four focused modules: network, ecr, logging, ecs.
 
 module "network" {
-  source         = "./modules/network"
-  service_name   = var.service_name
-  container_port = var.container_port
-  cidr_blocks    = var.cidr_blocks
+  source                = "./modules/network"
+  service_name          = var.service_name
+  container_port        = var.container_port
+  cidr_blocks           = var.cidr_blocks
+  alb_security_group_id = module.alb.alb_security_group_id
 }
 
 module "ecr" {
@@ -18,25 +19,35 @@ module "logging" {
   retention_in_days = var.log_retention_days
 }
 
+module "alb" {
+  source         = "./modules/alb"
+  vpc_id         = module.network.vpc_id
+  public_subnets = module.network.public_subnet_ids
+  service_name   = var.service_name
+  cidr_blocks    = var.cidr_blocks
+}
+
 # Reuse an existing IAM role for ECS tasks
 data "aws_iam_role" "lab_role" {
   name = "LabRole"
 }
 
 module "ecs" {
-  source             = "./modules/ecs"
-  service_name       = var.service_name
-  image              = "${module.ecr.repository_url}:latest"
-  container_port     = var.container_port
-  subnet_ids         = module.network.subnet_ids
-  security_group_ids = [module.network.security_group_id]
-  execution_role_arn = data.aws_iam_role.lab_role.arn
-  task_role_arn      = data.aws_iam_role.lab_role.arn
-  log_group_name     = module.logging.log_group_name
-  ecs_count          = var.ecs_count
-  region             = var.aws_region
-  cpu                = var.cpu
-  memory             = var.memory
+  source                    = "./modules/ecs"
+  service_name              = var.service_name
+  image                     = "${module.ecr.repository_url}:latest"
+  container_port            = var.container_port
+  subnet_ids                = module.network.subnet_ids
+  security_group_ids        = [module.network.security_group_id]
+  execution_role_arn        = data.aws_iam_role.lab_role.arn
+  task_role_arn             = data.aws_iam_role.lab_role.arn
+  log_group_name            = module.logging.log_group_name
+  ecs_count                 = var.ecs_count
+  region                    = var.aws_region
+  cpu                       = var.cpu
+  memory                    = var.memory
+  target_group_arn          = module.alb.target_group_arn
+  enable_auto_scaling       = var.enable_auto_scaling
 }
 
 
