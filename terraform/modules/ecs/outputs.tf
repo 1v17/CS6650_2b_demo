@@ -10,27 +10,27 @@ output "service_name" {
 
 output "autoscaling_target_resource_id" {
   description = "Auto scaling target resource ID"
-  value       = aws_appautoscaling_target.ecs_target.resource_id
+  value       = var.enable_auto_scaling ? aws_appautoscaling_target.ecs_target[0].resource_id : null
 }
 
 output "scale_out_policy_arn" {
   description = "Scale out policy ARN"
-  value       = aws_appautoscaling_policy.scale_out.arn
+  value       = var.enable_auto_scaling ? aws_appautoscaling_policy.scale_out[0].arn : null
 }
 
 output "scale_in_policy_arn" {
   description = "Scale in policy ARN"
-  value       = aws_appautoscaling_policy.scale_in.arn
+  value       = var.enable_auto_scaling ? aws_appautoscaling_policy.scale_in[0].arn : null
 }
 
 output "high_cpu_alarm_name" {
   description = "High CPU alarm name"
-  value       = aws_cloudwatch_metric_alarm.high_cpu.alarm_name
+  value       = var.enable_auto_scaling ? aws_cloudwatch_metric_alarm.high_cpu[0].alarm_name : null
 }
 
 output "low_cpu_alarm_name" {
   description = "Low CPU alarm name"
-  value       = aws_cloudwatch_metric_alarm.low_cpu.alarm_name
+  value       = var.enable_auto_scaling ? aws_cloudwatch_metric_alarm.low_cpu[0].alarm_name : null
 }
 
 output "high_response_time_alarm_name" {

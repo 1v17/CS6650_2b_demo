@@ -48,3 +48,10 @@ variable "cidr_blocks" {
   type        = list(string)
   description = "CIDR blocks allowed to access the service"
 }
+
+# Enable auto scaling for ECS service
+variable "enable_auto_scaling" {
+  type        = bool
+  default     = true
+  description = "Enable auto scaling for ECS service"
+}

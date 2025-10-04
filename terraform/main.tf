@@ -47,6 +47,7 @@ module "ecs" {
   cpu                       = var.cpu
   memory                    = var.memory
   target_group_arn          = module.alb.target_group_arn
+  enable_auto_scaling       = var.enable_auto_scaling
 }
 
 

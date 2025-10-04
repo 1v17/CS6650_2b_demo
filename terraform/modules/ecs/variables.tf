@@ -102,3 +102,9 @@ variable "enable_alb_monitoring" {
   default     = true
   description = "Enable ALB monitoring alarms (response time and error rate)"
 }
+
+variable "enable_auto_scaling" {
+  type        = bool
+  default     = true
+  description = "Enable auto scaling for ECS service"
+}

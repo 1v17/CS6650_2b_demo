@@ -66,6 +66,7 @@ resource "aws_ecs_service" "this" {
 
 # Auto scaling target
 resource "aws_appautoscaling_target" "ecs_target" {
+  count              = var.enable_auto_scaling ? 1 : 0
   min_capacity       = var.min_capacity
   max_capacity       = var.max_capacity
   resource_id        = "service/${aws_ecs_cluster.this.name}/${aws_ecs_service.this.name}"
@@ -75,11 +76,12 @@ resource "aws_appautoscaling_target" "ecs_target" {
 
 # Scale Out Policy (Add Instances)
 resource "aws_appautoscaling_policy" "scale_out" {
+  count              = var.enable_auto_scaling ? 1 : 0
   name               = "${var.service_name}-scale-out"
   policy_type        = "StepScaling"
-  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+  resource_id        = aws_appautoscaling_target.ecs_target[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_target[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_target[0].service_namespace
 
   step_scaling_policy_configuration {
     adjustment_type         = "ChangeInCapacity"
@@ -95,11 +97,12 @@ resource "aws_appautoscaling_policy" "scale_out" {
 
 # Scale In Policy (Remove Instances)
 resource "aws_appautoscaling_policy" "scale_in" {
+  count              = var.enable_auto_scaling ? 1 : 0
   name               = "${var.service_name}-scale-in"
   policy_type        = "StepScaling"
-  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
+  resource_id        = aws_appautoscaling_target.ecs_target[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_target[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_target[0].service_namespace
 
   step_scaling_policy_configuration {
     adjustment_type         = "ChangeInCapacity"
@@ -115,6 +118,7 @@ resource "aws_appautoscaling_policy" "scale_in" {
 
 # CloudWatch Alarm: High CPU (Scale Out)
 resource "aws_cloudwatch_metric_alarm" "high_cpu" {
+  count               = var.enable_auto_scaling ? 1 : 0
   alarm_name          = "${var.service_name}-high-cpu"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
@@ -124,7 +128,7 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu" {
   statistic           = "Average"
   threshold           = "70"
   alarm_description   = "This metric monitors ECS CPU utilization for scale out"
-  alarm_actions       = [aws_appautoscaling_policy.scale_out.arn]
+  alarm_actions       = [aws_appautoscaling_policy.scale_out[0].arn]
 
   dimensions = {
     ClusterName = aws_ecs_cluster.this.name
@@ -134,6 +138,7 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu" {
 
 # CloudWatch Alarm: Low CPU (Scale In)
 resource "aws_cloudwatch_metric_alarm" "low_cpu" {
+  count               = var.enable_auto_scaling ? 1 : 0
   alarm_name          = "${var.service_name}-low-cpu"
   comparison_operator = "LessThanThreshold"
   evaluation_periods  = "2"
@@ -143,7 +148,7 @@ resource "aws_cloudwatch_metric_alarm" "low_cpu" {
   statistic           = "Average"
   threshold           = "30"
   alarm_description   = "This metric monitors ECS CPU utilization for scale in"
-  alarm_actions       = [aws_appautoscaling_policy.scale_in.arn]
+  alarm_actions       = [aws_appautoscaling_policy.scale_in[0].arn]
 
   dimensions = {
     ClusterName = aws_ecs_cluster.this.name
