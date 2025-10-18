@@ -21,7 +21,7 @@ resource "aws_security_group" "this" {
     from_port   = var.container_port
     to_port     = var.container_port
     protocol    = "tcp"
-    cidr_blocks = var.cidr_blocks
+    cidr_blocks = ["0.0.0.0/0"]
     description = "Allow HTTP traffic"
   }
 
