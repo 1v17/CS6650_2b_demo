@@ -1,94 +1,37 @@
 package main
 
 import (
-	"net/http"
-	"strconv"
-	"sync"
-	"time"
+	"log"
+	"os"
+
+	"store_product/config"
+	"store_product/routes"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Product represents the product schema from the OpenAPI spec.
-type Product struct {
-	ProductID    int    `json:"product_id"`
-	SKU          string `json:"sku"`
-	Manufacturer string `json:"manufacturer"`
-	CategoryID   int    `json:"category_id"`
-	Weight       int    `json:"weight"`
-	SomeOtherID  int    `json:"some_other_id"`
-}
-
-// In-memory product store (thread-safe)
-var productStore sync.Map
-
 func main() {
+	// Initialize database connection
+	db, err := config.InitDB()
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+	defer db.Close()
+
+	// Initialize Gin router
 	router := gin.Default()
 
-	// Product endpoints
-	router.GET("/products/:productId", getProductByID)
-	router.POST("/products", postProduct)
+	// Setup routes
+	routes.SetupRoutes(router, db)
 
-	// Health check endpoint
-	router.GET("/health", healthHandler)
-
-	router.Run(":8080")
-}
-
-// healthHandler handles GET /health
-func healthHandler(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status":    "healthy",
-		"timestamp": time.Now().Unix(),
-		"service":   "product-service",
-	})
-}
-
-// getProductByID handles GET /products/:productId
-func getProductByID(c *gin.Context) {
-	idStr := c.Param("productId")
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "INVALID_INPUT",
-			"message": "The provided input data is invalid",
-			"details": "Product ID must be a positive integer",
-		})
-		return
+	// Get port from environment or default to 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
-	value, ok := productStore.Load(id)
-	if !ok {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   "INVALID_INPUT",
-			"message": "The provided input data is invalid",
-			"details": "Product ID must be a positive integer",
-		})
-		return
-	}
-	product := value.(Product)
-	c.JSON(http.StatusOK, product)
-}
 
-// postProduct handles POST /products
-func postProduct(c *gin.Context) {
-	var prod Product
-	if err := c.ShouldBindJSON(&prod); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "INVALID_INPUT",
-			"message": "The provided input data is invalid",
-			"details": "Product ID must be a positive integer",
-		})
-		return
+	log.Printf("Server starting on port %s", port)
+	if err := router.Run(":" + port); err != nil {
+		log.Fatal("Failed to start server:", err)
 	}
-	if prod.ProductID < 1 || prod.SKU == "" || prod.Manufacturer == "" ||
-		prod.CategoryID < 1 || prod.Weight < 0 || prod.SomeOtherID < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "INVALID_INPUT",
-			"message": "The provided input data is invalid",
-			"details": "Product ID must be a positive integer",
-		})
-		return
-	}
-	productStore.Store(prod.ProductID, prod)
-	c.JSON(http.StatusCreated, prod)
 }
