@@ -48,3 +48,29 @@ output "error_rate_alarm_name" {
   description = "Error rate alarm name (if enabled)"
   value       = module.ecs.error_rate_alarm_name
 }
+
+# RDS Outputs
+output "rds_endpoint" {
+  description = "RDS instance endpoint address"
+  value       = module.rds.rds_endpoint
+}
+
+output "rds_port" {
+  description = "RDS instance port"
+  value       = module.rds.rds_port
+}
+
+output "db_name" {
+  description = "Database name"
+  value       = module.rds.db_name
+}
+
+output "db_username" {
+  description = "Database master username"
+  value       = module.rds.db_username
+}
+
+output "rds_security_group_id" {
+  description = "Security group ID for RDS instance"
+  value       = module.rds.rds_security_group_id
+}

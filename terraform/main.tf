@@ -32,6 +32,16 @@ data "aws_iam_role" "lab_role" {
   name = "LabRole"
 }
 
+module "rds" {
+  source                = "./modules/rds"
+  service_name          = var.service_name
+  vpc_id                = module.network.vpc_id
+  subnet_ids            = module.network.subnet_ids
+  ecs_security_group_id = module.network.security_group_id
+  db_name               = "ecommerce"
+  db_username           = "admin"
+}
+
 module "ecs" {
   source                    = "./modules/ecs"
   service_name              = var.service_name
@@ -48,6 +58,28 @@ module "ecs" {
   memory                    = var.memory
   target_group_arn          = module.alb.target_group_arn
   enable_auto_scaling       = var.enable_auto_scaling
+  environment_variables = [
+    {
+      name  = "DB_HOST"
+      value = module.rds.rds_endpoint
+    },
+    {
+      name  = "DB_PORT"
+      value = tostring(module.rds.rds_port)
+    },
+    {
+      name  = "DB_USER"
+      value = module.rds.db_username
+    },
+    {
+      name  = "DB_PASSWORD"
+      value = module.rds.db_password
+    },
+    {
+      name  = "DB_NAME"
+      value = module.rds.db_name
+    }
+  ]
 }
 
 

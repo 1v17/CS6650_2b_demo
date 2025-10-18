@@ -108,3 +108,12 @@ variable "enable_auto_scaling" {
   default     = true
   description = "Enable auto scaling for ECS service"
 }
+
+variable "environment_variables" {
+  type = list(object({
+    name  = string
+    value = string
+  }))
+  default     = []
+  description = "Environment variables for the container"
+}
