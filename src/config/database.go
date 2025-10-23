@@ -11,13 +11,30 @@ import (
 )
 
 func InitDB() (*sql.DB, error) {
-	// Build DSN from environment variables
+	required := []string{"DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME"}
+	values := make(map[string]string, len(required))
+	var missing []string
+
+	for _, k := range required {
+		v, ok := os.LookupEnv(k)
+		if !ok || v == "" {
+			missing = append(missing, k)
+			continue
+		}
+		values[k] = v
+	}
+
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("missing required environment variables: %v", missing)
+	}
+
+	// Build DSN from validated environment variables
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"),
+		values["DB_USER"],
+		values["DB_PASSWORD"],
+		values["DB_HOST"],
+		values["DB_PORT"],
+		values["DB_NAME"],
 	)
 
 	db, err := sql.Open("mysql", dsn)
