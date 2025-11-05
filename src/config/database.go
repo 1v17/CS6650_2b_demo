@@ -82,7 +82,8 @@ func initSchema(db *sql.DB) error {
 		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 		FOREIGN KEY (cart_id) REFERENCES shopping_carts(cart_id) ON DELETE CASCADE,
 		UNIQUE KEY unique_cart_product (cart_id, product_id),
-		INDEX idx_cart_id (cart_id)
+		INDEX idx_cart_id (cart_id),
+		CHECK (quantity >= 0)
 	) ENGINE=InnoDB;
 	`
 

@@ -1,3 +1,9 @@
+# AWS Profile to use
+variable "aws_profile" {
+  type    = string
+  default = "default"
+}
+
 # Region to deploy into
 variable "aws_region" {
   type    = string
