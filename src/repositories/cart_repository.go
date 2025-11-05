@@ -36,44 +36,71 @@ func (r *CartRepository) Create(customerID int) (int, error) {
 
 // GetByID retrieves a shopping cart by ID with all items
 func (r *CartRepository) GetByID(cartID int) (*models.ShoppingCart, error) {
-	// Get cart info
-	var cart models.ShoppingCart
-	err := r.db.QueryRow(
-		"SELECT cart_id, customer_id, created_at, updated_at FROM shopping_carts WHERE cart_id = ?",
-		cartID,
-	).Scan(&cart.CartID, &cart.CustomerID, &cart.CreatedAt, &cart.UpdatedAt)
+	// Use LEFT JOIN to get cart and all items in a single query
+	rows, err := r.db.Query(`
+		SELECT 
+			c.cart_id, c.customer_id, c.created_at, c.updated_at,
+			ci.item_id, ci.product_id, ci.quantity, ci.added_at, ci.updated_at
+		FROM shopping_carts c
+		LEFT JOIN cart_items ci ON c.cart_id = ci.cart_id
+		WHERE c.cart_id = ?
+		ORDER BY ci.added_at
+	`, cartID)
 
-	if err == sql.ErrNoRows {
-		return nil, nil // Cart not found
-	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cart: %w", err)
 	}
-
-	// Get cart items
-	rows, err := r.db.Query(
-		"SELECT item_id, product_id, quantity, added_at, updated_at FROM cart_items WHERE cart_id = ? ORDER BY added_at",
-		cartID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch cart items: %w", err)
-	}
 	defer rows.Close()
 
-	cart.Items = []models.CartItem{}
+	var cart *models.ShoppingCart
+	cart = nil
+
 	for rows.Next() {
-		var item models.CartItem
-		if err := rows.Scan(&item.ItemID, &item.ProductID, &item.Quantity, &item.AddedAt, &item.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("failed to scan cart item: %w", err)
+		// Use sql.Null types for the cart_items fields since they may be NULL (LEFT JOIN)
+		var itemID, productID, quantity sql.NullInt64
+		var addedAt, updatedAt sql.NullTime
+
+		if cart == nil {
+			// First row - initialize the cart
+			cart = &models.ShoppingCart{Items: []models.CartItem{}}
+			err := rows.Scan(
+				&cart.CartID, &cart.CustomerID, &cart.CreatedAt, &cart.UpdatedAt,
+				&itemID, &productID, &quantity, &addedAt, &updatedAt,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to scan cart: %w", err)
+			}
+		} else {
+			// Subsequent rows - only scan item fields (cart fields are the same)
+			var tempCartID, tempCustomerID int
+			var tempCreatedAt, tempUpdatedAt interface{}
+			err := rows.Scan(
+				&tempCartID, &tempCustomerID, &tempCreatedAt, &tempUpdatedAt,
+				&itemID, &productID, &quantity, &addedAt, &updatedAt,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to scan cart item: %w", err)
+			}
 		}
-		cart.Items = append(cart.Items, item)
+
+		// Add item to cart if it exists (not NULL from LEFT JOIN)
+		if itemID.Valid {
+			item := models.CartItem{
+				ItemID:    int(itemID.Int64),
+				ProductID: int(productID.Int64),
+				Quantity:  int(quantity.Int64),
+				AddedAt:   addedAt.Time,
+				UpdatedAt: updatedAt.Time,
+			}
+			cart.Items = append(cart.Items, item)
+		}
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating cart items: %w", err)
+		return nil, fmt.Errorf("error iterating cart rows: %w", err)
 	}
 
-	return &cart, nil
+	return cart, nil
 }
 
 // Exists checks if a cart exists

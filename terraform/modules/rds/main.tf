@@ -87,3 +87,28 @@ resource "aws_db_instance" "mysql" {
 
 # Get current AWS account ID
 data "aws_caller_identity" "current" {}
+
+# Initialize database schema using local-exec provisioner
+resource "null_resource" "db_init" {
+  # Trigger re-initialization when the database instance changes
+  triggers = {
+    db_instance_id = aws_db_instance.mysql.id
+  }
+
+  # Wait for the database to be available
+  depends_on = [aws_db_instance.mysql]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Waiting for database to be ready..."
+      sleep 30
+      mysql -h ${aws_db_instance.mysql.endpoint} \
+            -u ${aws_db_instance.mysql.username} \
+            -p${random_password.db_password.result} \
+            ${aws_db_instance.mysql.db_name} \
+            < ${path.module}/../../schema.sql
+    EOT
+    
+    interpreter = ["bash", "-c"]
+  }
+}

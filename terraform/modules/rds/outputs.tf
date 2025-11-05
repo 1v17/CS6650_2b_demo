@@ -1,6 +1,6 @@
 output "rds_endpoint" {
-  description = "RDS instance endpoint address"
-  value       = aws_db_instance.mysql.endpoint
+  description = "RDS instance endpoint address (hostname only, without port)"
+  value       = split(":", aws_db_instance.mysql.endpoint)[0]
 }
 
 output "rds_port" {
