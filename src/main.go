@@ -16,19 +16,34 @@ func main() {
 	// 	log.Printf("Warning: Could not load .env file: %v", err)
 	// }
 
-	// Initialize database connection
-	db, err := config.InitDB()
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
-	}
-	defer db.Close()
-	log.Println("Database connection established and successfully initialized.")
+	// Get database type from environment
+	dbType := config.GetDatabaseType()
+	log.Printf("Database type: %s", dbType)
 
 	// Initialize Gin router
 	router := gin.Default()
 
-	// Setup routes
-	routes.SetupRoutes(router, db)
+	// Setup routes based on database type
+	if dbType == "dynamodb" {
+		// Initialize DynamoDB
+		dynamoClient, tableName, err := config.InitDynamoDB()
+		if err != nil {
+			log.Fatal("Failed to initialize DynamoDB:", err)
+		}
+		log.Printf("DynamoDB initialized successfully with table: %s", tableName)
+
+		routes.SetupRoutesWithDynamoDB(router, dynamoClient, tableName)
+	} else {
+		// Initialize MySQL (default)
+		db, err := config.InitDB()
+		if err != nil {
+			log.Fatal("Failed to connect to MySQL database:", err)
+		}
+		defer db.Close()
+		log.Println("MySQL database connection established and successfully initialized.")
+
+		routes.SetupRoutes(router, db)
+	}
 
 	// Get port from environment or default to 8080
 	port := os.Getenv("PORT")

@@ -1,14 +1,35 @@
 package config
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	_ "github.com/go-sql-driver/mysql"
 )
+
+// DBConfig holds database configuration
+type DBConfig struct {
+	Type           string // "mysql" or "dynamodb"
+	MySQLDB        *sql.DB
+	DynamoDBClient *dynamodb.Client
+	DynamoDBTable  string
+	AWSRegion      string
+}
+
+// GetDatabaseType returns the configured database type
+func GetDatabaseType() string {
+	dbType := os.Getenv("DATABASE_TYPE")
+	if dbType == "" {
+		dbType = "mysql" // default to MySQL for backward compatibility
+	}
+	return dbType
+}
 
 func InitDB() (*sql.DB, error) {
 	required := []string{"DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME"}
@@ -100,4 +121,33 @@ func initSchema(db *sql.DB) error {
 
 	log.Println("Database schema initialized successfully")
 	return nil
+}
+
+// InitDynamoDB initializes DynamoDB client
+func InitDynamoDB() (*dynamodb.Client, string, error) {
+	// Check required environment variables
+	tableName := os.Getenv("DYNAMODB_TABLE_NAME")
+	if tableName == "" {
+		return nil, "", fmt.Errorf("DYNAMODB_TABLE_NAME environment variable is required")
+	}
+
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = "us-west-2" // default region
+		log.Printf("AWS_REGION not set, using default: %s", region)
+	}
+
+	// Load AWS configuration
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+	)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	// Create DynamoDB client
+	client := dynamodb.NewFromConfig(cfg)
+
+	log.Printf("Successfully initialized DynamoDB client for table: %s in region: %s", tableName, region)
+	return client, tableName, nil
 }
