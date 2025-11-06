@@ -49,28 +49,45 @@ output "error_rate_alarm_name" {
   value       = module.ecs.error_rate_alarm_name
 }
 
-# RDS Outputs
+# Database Type
+output "database_type" {
+  description = "Type of database being used (mysql or dynamodb)"
+  value       = var.database_type
+}
+
+# RDS Outputs (only when using MySQL)
 output "rds_endpoint" {
   description = "RDS instance endpoint address"
-  value       = module.rds.rds_endpoint
+  value       = var.database_type == "mysql" ? module.rds[0].rds_endpoint : null
 }
 
 output "rds_port" {
   description = "RDS instance port"
-  value       = module.rds.rds_port
+  value       = var.database_type == "mysql" ? module.rds[0].rds_port : null
 }
 
 output "db_name" {
   description = "Database name"
-  value       = module.rds.db_name
+  value       = var.database_type == "mysql" ? module.rds[0].db_name : null
 }
 
 output "db_username" {
   description = "Database master username"
-  value       = module.rds.db_username
+  value       = var.database_type == "mysql" ? module.rds[0].db_username : null
 }
 
 output "rds_security_group_id" {
   description = "Security group ID for RDS instance"
-  value       = module.rds.rds_security_group_id
+  value       = var.database_type == "mysql" ? module.rds[0].rds_security_group_id : null
+}
+
+# DynamoDB Outputs (only when using DynamoDB)
+output "dynamodb_table_name" {
+  description = "Name of the DynamoDB table"
+  value       = var.database_type == "dynamodb" ? module.dynamodb[0].table_name : null
+}
+
+output "dynamodb_table_arn" {
+  description = "ARN of the DynamoDB table"
+  value       = var.database_type == "dynamodb" ? module.dynamodb[0].table_arn : null
 }

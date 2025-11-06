@@ -61,3 +61,15 @@ variable "enable_auto_scaling" {
   default     = true
   description = "Enable auto scaling for ECS service"
 }
+
+# Database type selection
+variable "database_type" {
+  type        = string
+  description = "Type of database to use: 'mysql' or 'dynamodb'"
+  default     = "mysql"
+  
+  validation {
+    condition     = contains(["mysql", "dynamodb"], var.database_type)
+    error_message = "database_type must be either 'mysql' or 'dynamodb'"
+  }
+}

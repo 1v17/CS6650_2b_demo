@@ -1,4 +1,4 @@
-# Wire together four focused modules: network, ecr, logging, ecs.
+# Wire together focused modules: network, ecr, logging, iam, ecs.
 
 module "network" {
   source                = "./modules/network"
@@ -27,12 +27,16 @@ module "alb" {
   cidr_blocks    = var.cidr_blocks
 }
 
-# Reuse an existing IAM role for ECS tasks
-data "aws_iam_role" "lab_role" {
-  name = "LabRole"
+# IAM roles module
+module "iam" {
+  source        = "./modules/iam"
+  service_name  = var.service_name
+  database_type = var.database_type
 }
 
+# Conditionally create MySQL RDS instance
 module "rds" {
+  count                 = var.database_type == "mysql" ? 1 : 0
   source                = "./modules/rds"
   service_name          = var.service_name
   vpc_id                = module.network.vpc_id
@@ -42,6 +46,15 @@ module "rds" {
   db_username           = "admin"
 }
 
+# Conditionally create DynamoDB table
+module "dynamodb" {
+  count                         = var.database_type == "dynamodb" ? 1 : 0
+  source                        = "./modules/dynamodb"
+  service_name                  = var.service_name
+  environment                   = "dev"
+  enable_point_in_time_recovery = true
+}
+
 module "ecs" {
   source                    = "./modules/ecs"
   service_name              = var.service_name
@@ -49,8 +62,8 @@ module "ecs" {
   container_port            = var.container_port
   subnet_ids                = module.network.subnet_ids
   security_group_ids        = [module.network.security_group_id]
-  execution_role_arn        = data.aws_iam_role.lab_role.arn
-  task_role_arn             = data.aws_iam_role.lab_role.arn
+  execution_role_arn        = module.iam.ecs_task_execution_role_arn
+  task_role_arn             = module.iam.ecs_task_role_arn
   log_group_name            = module.logging.log_group_name
   ecs_count                 = var.ecs_count
   region                    = var.aws_region
@@ -58,26 +71,43 @@ module "ecs" {
   memory                    = var.memory
   target_group_arn          = module.alb.target_group_arn
   enable_auto_scaling       = var.enable_auto_scaling
-  environment_variables = [
+  environment_variables = var.database_type == "mysql" ? [
+    {
+      name  = "DATABASE_TYPE"
+      value = "mysql"
+    },
     {
       name  = "DB_HOST"
-      value = module.rds.rds_endpoint
+      value = module.rds[0].rds_endpoint
     },
     {
       name  = "DB_PORT"
-      value = tostring(module.rds.rds_port)
+      value = tostring(module.rds[0].rds_port)
     },
     {
       name  = "DB_USER"
-      value = module.rds.db_username
+      value = module.rds[0].db_username
     },
     {
       name  = "DB_PASSWORD"
-      value = module.rds.db_password
+      value = module.rds[0].db_password
     },
     {
       name  = "DB_NAME"
-      value = module.rds.db_name
+      value = module.rds[0].db_name
+    }
+  ] : [
+    {
+      name  = "DATABASE_TYPE"
+      value = "dynamodb"
+    },
+    {
+      name  = "DYNAMODB_TABLE_NAME"
+      value = module.dynamodb[0].table_name
+    },
+    {
+      name  = "AWS_REGION"
+      value = var.aws_region
     }
   ]
 }

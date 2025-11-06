@@ -6,18 +6,21 @@ import (
 	"store_product/models"
 )
 
-// CartRepository handles shopping cart data operations
-type CartRepository struct {
+// MySQLCartRepository handles shopping cart data operations for MySQL
+type MySQLCartRepository struct {
 	db *sql.DB
 }
 
-// NewCartRepository creates a new cart repository
-func NewCartRepository(db *sql.DB) *CartRepository {
-	return &CartRepository{db: db}
+// NewMySQLCartRepository creates a new MySQL cart repository
+func NewMySQLCartRepository(db *sql.DB) *MySQLCartRepository {
+	return &MySQLCartRepository{db: db}
 }
 
+// Ensure MySQLCartRepository implements CartRepositoryInterface
+var _ CartRepositoryInterface = (*MySQLCartRepository)(nil)
+
 // Create creates a new shopping cart
-func (r *CartRepository) Create(customerID int) (int, error) {
+func (r *MySQLCartRepository) Create(customerID int) (interface{}, error) {
 	result, err := r.db.Exec(
 		"INSERT INTO shopping_carts (customer_id) VALUES (?)",
 		customerID,
@@ -35,7 +38,11 @@ func (r *CartRepository) Create(customerID int) (int, error) {
 }
 
 // GetByID retrieves a shopping cart by ID with all items
-func (r *CartRepository) GetByID(cartID int) (*models.ShoppingCart, error) {
+func (r *MySQLCartRepository) GetByID(cartID interface{}) (*models.ShoppingCart, error) {
+	id, ok := cartID.(int)
+	if !ok {
+		return nil, fmt.Errorf("invalid cart ID type for MySQL")
+	}
 	// Use LEFT JOIN to get cart and all items in a single query
 	rows, err := r.db.Query(`
 		SELECT 
@@ -45,7 +52,7 @@ func (r *CartRepository) GetByID(cartID int) (*models.ShoppingCart, error) {
 		LEFT JOIN cart_items ci ON c.cart_id = ci.cart_id
 		WHERE c.cart_id = ?
 		ORDER BY ci.added_at
-	`, cartID)
+	`, id)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cart: %w", err)
@@ -104,11 +111,15 @@ func (r *CartRepository) GetByID(cartID int) (*models.ShoppingCart, error) {
 }
 
 // Exists checks if a cart exists
-func (r *CartRepository) Exists(cartID int) (bool, error) {
+func (r *MySQLCartRepository) Exists(cartID interface{}) (bool, error) {
+	id, ok := cartID.(int)
+	if !ok {
+		return false, fmt.Errorf("invalid cart ID type for MySQL")
+	}
 	var exists bool
 	err := r.db.QueryRow(
 		"SELECT EXISTS(SELECT 1 FROM shopping_carts WHERE cart_id = ?)",
-		cartID,
+		id,
 	).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("failed to check cart existence: %w", err)
@@ -117,7 +128,11 @@ func (r *CartRepository) Exists(cartID int) (bool, error) {
 }
 
 // AddItem adds or updates an item in the cart
-func (r *CartRepository) AddItem(cartID, productID, quantity int) error {
+func (r *MySQLCartRepository) AddItem(cartID interface{}, productID, quantity int) error {
+	id, ok := cartID.(int)
+	if !ok {
+		return fmt.Errorf("invalid cart ID type for MySQL")
+	}
 	// Use INSERT ... ON DUPLICATE KEY UPDATE for upsert behavior
 	_, err := r.db.Exec(`
 		INSERT INTO cart_items (cart_id, product_id, quantity)
@@ -125,7 +140,7 @@ func (r *CartRepository) AddItem(cartID, productID, quantity int) error {
 		ON DUPLICATE KEY UPDATE 
 			quantity = quantity + VALUES(quantity),
 			updated_at = CURRENT_TIMESTAMP
-	`, cartID, productID, quantity)
+	`, id, productID, quantity)
 
 	if err != nil {
 		return fmt.Errorf("failed to add item to cart: %w", err)
@@ -134,7 +149,7 @@ func (r *CartRepository) AddItem(cartID, productID, quantity int) error {
 	// Update cart's updated_at timestamp
 	_, err = r.db.Exec(
 		"UPDATE shopping_carts SET updated_at = CURRENT_TIMESTAMP WHERE cart_id = ?",
-		cartID,
+		id,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update cart timestamp: %w", err)
@@ -144,7 +159,7 @@ func (r *CartRepository) AddItem(cartID, productID, quantity int) error {
 }
 
 // GetByCustomerID retrieves all carts for a customer
-func (r *CartRepository) GetByCustomerID(customerID int) ([]models.ShoppingCart, error) {
+func (r *MySQLCartRepository) GetByCustomerID(customerID int) ([]models.ShoppingCart, error) {
 	rows, err := r.db.Query(
 		"SELECT cart_id, customer_id, created_at, updated_at FROM shopping_carts WHERE customer_id = ? ORDER BY created_at DESC",
 		customerID,

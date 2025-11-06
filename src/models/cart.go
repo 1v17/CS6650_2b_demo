@@ -4,20 +4,21 @@ import "time"
 
 // ShoppingCart represents a customer's shopping cart
 type ShoppingCart struct {
-	CartID     int        `json:"cart_id"`
-	CustomerID int        `json:"customer_id"`
-	CreatedAt  time.Time  `json:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at"`
-	Items      []CartItem `json:"items"`
+	CartID     interface{} `json:"cart_id" dynamodbav:"cart_id"` // Can be int (MySQL) or string (DynamoDB UUID)
+	CustomerID int         `json:"customer_id" dynamodbav:"customer_id"`
+	CreatedAt  time.Time   `json:"created_at" dynamodbav:"created_at"`
+	UpdatedAt  time.Time   `json:"updated_at" dynamodbav:"updated_at"`
+	Items      []CartItem  `json:"items" dynamodbav:"cart_items"`
+	TTL        *int64      `json:"ttl,omitempty" dynamodbav:"ttl,omitempty"` // TTL for DynamoDB (Unix timestamp)
 }
 
 // CartItem represents an item in a shopping cart
 type CartItem struct {
-	ItemID    int       `json:"item_id"`
-	ProductID int       `json:"product_id"`
-	Quantity  int       `json:"quantity"`
-	AddedAt   time.Time `json:"added_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ItemID    int       `json:"item_id" dynamodbav:"item_id"`
+	ProductID int       `json:"product_id" dynamodbav:"product_id"`
+	Quantity  int       `json:"quantity" dynamodbav:"quantity"`
+	AddedAt   time.Time `json:"added_at" dynamodbav:"added_at"`
+	UpdatedAt time.Time `json:"updated_at" dynamodbav:"updated_at"`
 }
 
 // CreateCartRequest represents the request body for creating a cart
