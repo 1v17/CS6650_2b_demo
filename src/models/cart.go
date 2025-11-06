@@ -8,7 +8,7 @@ type ShoppingCart struct {
 	CustomerID int         `json:"customer_id" dynamodbav:"customer_id"`
 	CreatedAt  time.Time   `json:"created_at" dynamodbav:"created_at"`
 	UpdatedAt  time.Time   `json:"updated_at" dynamodbav:"updated_at"`
-	Items      []CartItem  `json:"items" dynamodbav:"items"`
+	Items      []CartItem  `json:"items" dynamodbav:"cart_items"`
 	TTL        *int64      `json:"ttl,omitempty" dynamodbav:"ttl,omitempty"` // TTL for DynamoDB (Unix timestamp)
 }
 

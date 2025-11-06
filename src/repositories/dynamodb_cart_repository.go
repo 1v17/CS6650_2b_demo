@@ -167,9 +167,9 @@ func (r *DynamoDBCartRepository) AddItem(cartID interface{}, productID, quantity
 		Key: map[string]types.AttributeValue{
 			"cart_id": &types.AttributeValueMemberS{Value: id},
 		},
-		UpdateExpression: aws.String("SET items = :items, updated_at = :updated_at"),
+		UpdateExpression: aws.String("SET cart_items = :cart_items, updated_at = :updated_at"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":items":      itemsAV,
+			":cart_items": itemsAV,
 			":updated_at": updatedAtAV,
 		},
 		ConditionExpression: aws.String("attribute_exists(cart_id)"), // Ensure cart exists

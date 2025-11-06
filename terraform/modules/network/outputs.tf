@@ -1,16 +1,16 @@
 output "vpc_id" {
-  description = "ID of the default VPC"
-  value       = data.aws_vpc.default.id
+  description = "ID of the VPC"
+  value       = aws_vpc.main.id
 }
 
 output "subnet_ids" {
-  description = "IDs of the default VPC subnets"
-  value       = data.aws_subnets.default.ids
+  description = "IDs of the VPC subnets"
+  value       = aws_subnet.public[*].id
 }
 
 output "public_subnet_ids" {
-  description = "IDs of the public subnets (same as subnet_ids for default VPC)"
-  value       = data.aws_subnets.default.ids
+  description = "IDs of the public subnets"
+  value       = aws_subnet.public[*].id
 }
 
 output "security_group_id" {

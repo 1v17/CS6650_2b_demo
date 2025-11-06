@@ -1,4 +1,4 @@
-# Wire together four focused modules: network, ecr, logging, ecs.
+# Wire together focused modules: network, ecr, logging, iam, ecs.
 
 module "network" {
   source                = "./modules/network"
@@ -27,9 +27,11 @@ module "alb" {
   cidr_blocks    = var.cidr_blocks
 }
 
-# Reuse an existing IAM role for ECS tasks
-data "aws_iam_role" "lab_role" {
-  name = "LabRole"
+# IAM roles module
+module "iam" {
+  source        = "./modules/iam"
+  service_name  = var.service_name
+  database_type = var.database_type
 }
 
 # Conditionally create MySQL RDS instance
@@ -60,8 +62,8 @@ module "ecs" {
   container_port            = var.container_port
   subnet_ids                = module.network.subnet_ids
   security_group_ids        = [module.network.security_group_id]
-  execution_role_arn        = data.aws_iam_role.lab_role.arn
-  task_role_arn             = data.aws_iam_role.lab_role.arn
+  execution_role_arn        = module.iam.ecs_task_execution_role_arn
+  task_role_arn             = module.iam.ecs_task_role_arn
   log_group_name            = module.logging.log_group_name
   ecs_count                 = var.ecs_count
   region                    = var.aws_region
