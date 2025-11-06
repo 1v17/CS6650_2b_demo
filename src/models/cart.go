@@ -28,7 +28,9 @@ type CreateCartRequest struct {
 
 // CreateCartResponse represents the response after creating a cart
 type CreateCartResponse struct {
-	ShoppingCartID int `json:"shopping_cart_id"`
+	// Use interface{} so the response can hold either an int (MySQL auto-inc id)
+	// or a string (DynamoDB UUID). JSON marshalling will preserve the underlying type.
+	ShoppingCartID interface{} `json:"shopping_cart_id"`
 }
 
 // AddItemRequest represents the request body for adding items to cart
